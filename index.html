@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Álbum del Colegio</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f9f9f9; margin: 0; }
+    header { position: sticky; top: 0; background: rgba(255,255,255,0.9); backdrop-filter: blur(5px); border-bottom: 1px solid #ddd; padding: 1rem; }
+    h1 { margin: 0; font-size: 1.5rem; }
+    .search { margin-top: .5rem; }
+    .filters { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .5rem; }
+    select, input { padding: .4rem; border: 1px solid #ccc; border-radius: 6px; }
+    main { padding: 1rem; max-width: 1200px; margin: auto; }
+    .gallery { column-count: 1; column-gap: 1rem; }
+    @media(min-width:600px){ .gallery{column-count:2;} }
+    @media(min-width:900px){ .gallery{column-count:3;} }
+    @media(min-width:1200px){ .gallery{column-count:4;} }
+    .photo { break-inside: avoid; margin-bottom: 1rem; cursor: pointer; position: relative; }
+    .photo img { width: 100%; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    .photo-info { font-size: .8rem; margin-top: .3rem; color: #555; }
+    .lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); justify-content: center; align-items: center; z-index: 999; }
+    .lightbox.open { display: flex; }
+    .lightbox img { max-width: 90%; max-height: 80%; border-radius: 10px; }
+    .close, .prev, .next { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.8); border: none; padding: .5rem; border-radius: 50%; cursor: pointer; }
+    .close { top: 5%; right: 5%; transform: none; }
+    .prev { left: 5%; }
+    .next { right: 5%; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Álbum del Colegio</h1>
+    <input id="search" class="search" type="text" placeholder="Buscar (ej. fútbol, feria)" />
+    <div class="filters">
+      <select id="filterAnio"><option value="">Año</option></select>
+      <select id="filterCurso"><option value="">Curso</option></select>
+      <select id="filterEvento"><option value="">Evento</option></select>
+    </div>
+  </header>
+
+  <main>
+    <div id="gallery" class="gallery"></div>
+  </main>
+
+  <div id="lightbox" class="lightbox">
+    <button class="close" onclick="closeLightbox()">✕</button>
+    <button class="prev" onclick="prevFoto()">◀</button>
+    <img id="lightboxImg" src="" alt="" />
+    <button class="next" onclick="nextFoto()">▶</button>
+  </div>
+
+  <script>
+    const FOTOS = [
+      { src: "https://picsum.photos/id/1011/1200/800", alt: "Ceremonia de apertura", anio: 2022, curso: "5to A", evento: "Apertura" },
+      { src: "https://picsum.photos/id/1035/1200/900", alt: "Partido de fútbol interclases", anio: 2023, curso: "4to A", evento: "Deportes" },
+      { src: "https://picsum.photos/id/1041/1200/800", alt: "Obra de teatro escolar", anio: 2023, curso: "2do C", evento: "Cultura" },
+      { src: "https://picsum.photos/id/1056/1200/900", alt: "Feria de ciencias", anio: 2024, curso: "1ro A", evento: "Feria" },
+      { src: "https://picsum.photos/id/1083/1200/900", alt: "Campeonato de vóley", anio: 2024, curso: "4to B", evento: "Deportes" },
+    ];
+
+    const gallery = document.getElementById("gallery");
+    const search = document.getElementById("search");
+    const filterAnio = document.getElementById("filterAnio");
+    const filterCurso = document.getElementById("filterCurso");
+    const filterEvento = document.getElementById("filterEvento");
+
+    let currentIndex = 0;
+
+    function renderOptions() {
+      const anios = [...new Set(FOTOS.map(f => f.anio))];
+      anios.forEach(a => filterAnio.innerHTML += `<option>${a}</option>`);
+      const cursos = [...new Set(FOTOS.map(f => f.curso))];
+      cursos.forEach(c => filterCurso.innerHTML += `<option>${c}</option>`);
+      const eventos = [...new Set(FOTOS.map(f => f.evento))];
+      eventos.forEach(e => filterEvento.innerHTML += `<option>${e}</option>`);
+    }
+
+    function renderFotos() {
+      const q = search.value.toLowerCase();
+      const anio = filterAnio.value;
+      const curso = filterCurso.value;
+      const evento = filterEvento.value;
+      gallery.innerHTML = "";
+      FOTOS.filter(f => (
+        (!q || f.alt.toLowerCase().includes(q)) &&
+        (!anio || f.anio == anio) &&
+        (!curso || f.curso == curso) &&
+        (!evento || f.evento == evento)
+      )).forEach((f,i) => {
+        const div = document.createElement("div");
+        div.className = "photo";
+        div.innerHTML = `<img src="${f.src}" alt="${f.alt}"><div class="photo-info">${f.alt} • ${f.curso} • ${f.anio}</div>`;
+        div.onclick = () => openLightbox(i);
+        gallery.appendChild(div);
+      });
+    }
+
+    function openLightbox(i) {
+      currentIndex = i;
+      document.getElementById("lightboxImg").src = FOTOS[i].src;
+      document.getElementById("lightbox").classList.add("open");
+    }
+    function closeLightbox() { document.getElementById("lightbox").classList.remove("open"); }
+    function prevFoto() { currentIndex = (currentIndex-1+FOTOS.length)%FOTOS.length; document.getElementById("lightboxImg").src = FOTOS[currentIndex].src; }
+    function nextFoto() { currentIndex = (currentIndex+1)%FOTOS.length; document.getElementById("lightboxImg").src = FOTOS[currentIndex].src; }
+
+    document.addEventListener("keydown", e => {
+      if (!document.getElementById("lightbox").classList.contains("open")) return;
+      if (e.key==="Escape") closeLightbox();
+      if (e.key==="ArrowLeft") prevFoto();
+      if (e.key==="ArrowRight") nextFoto();
+    });
+
+    search.oninput = renderFotos;
+    filterAnio.onchange = renderFotos;
+    filterCurso.onchange = renderFotos;
+    filterEvento.onchange = renderFotos;
+
+    renderOptions();
+    renderFotos();
+  </script>
+</body>
+</html>
